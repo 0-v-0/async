@@ -42,14 +42,10 @@ class Codec
 		if (magic.length)
 		{
 			if (buffer.length < magic.length)
-			{
 				return typeof(return)(-1, 0);
-			}
 
 			if (buffer[0 .. magic.length] != magic)
-			{
 				return typeof(return)(-2, 0);
-			}
 		}
 
 		if (ct == CodecType.TextLine)
@@ -67,18 +63,14 @@ class Codec
 			}
 
 			if (endPoint == -1)
-			{
 				return typeof(return)(-1, 0);
-			}
 
 			size_t spliterSize = 1;
 			for (size_t i = endPoint + 1; i < buffer.length; i++)
 			{
-				const char ch = buffer[i];
-				if ((ch != '\r') && (ch != '\n'))
-				{
+				const ch = buffer[i];
+				if (ch != '\r' && ch != '\n')
 					break;
-				}
 
 				spliterSize++;
 			}
@@ -88,16 +80,12 @@ class Codec
 		else if (ct == CodecType.SizeGuide)
 		{
 			if (buffer.length < magic.length + int.sizeof)
-			{
 				return typeof(return)(-1, 0);
-			}
 
 			ubyte[] header = buffer[0 .. magic.length + int.sizeof];
 			size_t size = header[magic.length .. $].peek!int(0);
 			if (buffer.length < magic.length + int.sizeof + size)
-			{
 				return typeof(return)(-1, 0);
-			}
 
 			return typeof(return)(magic.length + int.sizeof + size, 0);
 		}

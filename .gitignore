@@ -1,7 +1,9 @@
 /.project
 **/.dub/
 **/dub.selections.json
-/libasync.a
-/async.lib
+*.a
+*.lib
+*.exe
+*.pdb
 client
 server

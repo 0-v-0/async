@@ -27,7 +27,7 @@ class Iocp : Selector
 
 	override bool register(int fd, EventType et)
 	{
-		return fd >= 0 && CreateIoCompletionPort(cast(HANDLE) fd, _eventHandle, fd, 0) != null;
+		return fd >= 0 && CreateIoCompletionPort(cast(HANDLE)fd, _eventHandle, fd, 0) != null;
 	}
 
 	override bool reregister(int fd, EventType et)
@@ -53,15 +53,13 @@ class Iocp : Selector
 			ULONG_PTR key = void;
 			DWORD bytes;
 			int ret = GetQueuedCompletionStatus(selector._eventHandle, &bytes, &key, &overlapped, INFINITE);
-			context = cast(IocpContext*) overlapped;
+			context = cast(IocpContext*)overlapped;
 
 			if (ret == 0)
 			{
 				const err = GetLastError();
 				if (err != WAIT_TIMEOUT && context)
-				{
 					selector.removeClient(context.fd, err);
-				}
 				continue;
 			}
 
@@ -90,12 +88,10 @@ class Iocp : Selector
 					context.operation = IocpOperation.write;
 					buffSend.buf = context.buffer.ptr + context.nSentBytes;
 					buffSend.len = context.nTotalBytes - context.nSentBytes;
-					ret = WSASend(cast(SOCKET) context.fd, &buffSend, 1, &dwSendNumBytes, dwFlags, &(context.overlapped), null);
-
+					ret = WSASend(cast(SOCKET)context.fd, &buffSend, 1, &dwSendNumBytes, dwFlags, &context.overlapped, null);
 					if (ret == SOCKET_ERROR)
 					{
 						const err = WSAGetLastError();
-
 						if (err != ERROR_IO_PENDING)
 						{
 							selector.removeClient(context.fd, err);
@@ -103,11 +99,8 @@ class Iocp : Selector
 						}
 					}
 				}
-				else
-				{
-					// Write operation completed, so post Read operation.
+				else // Write operation completed, so post Read operation.
 					iocp_receive(selector, context.fd);
-				}
 			}
 		}
 	}
@@ -128,11 +121,8 @@ class Iocp : Selector
 		if (err == SOCKET_ERROR)
 		{
 			err = WSAGetLastError();
-
 			if (err != ERROR_IO_PENDING)
-			{
 				selector.removeClient(fd, err);
-			}
 		}
 	}
 
@@ -145,27 +135,25 @@ class Iocp : Selector
 
 			auto context = new IocpContext;
 			context.operation  = IocpOperation.write;
-			context.buffer[0..len] = cast(char[]) data[pos..pos + len];
-			context.nTotalBytes = cast(int) len;
+			context.buffer[0..len] = cast(char[])data[pos..pos + len];
+			context.nTotalBytes = cast(int)len;
 			context.nSentBytes  = 0;
 			context.wsabuf.buf  = context.buffer.ptr;
-			context.wsabuf.len  = cast(int) len;
+			context.wsabuf.len  = cast(int)len;
 			context.fd          = fd;
 			uint dwSendNumBytes = void;
 			enum dwFlags = 0;
-			int err = WSASend(cast(HANDLE) fd, &context.wsabuf, 1, &dwSendNumBytes, dwFlags, &context.overlapped, null);
+			int err = WSASend(cast(HANDLE)fd, &context.wsabuf, 1, &dwSendNumBytes, dwFlags, &context.overlapped, null);
 
 			if (err == SOCKET_ERROR)
 			{
 				err = WSAGetLastError();
-
 				if (err != ERROR_IO_PENDING)
 				{
 					selector.removeClient(fd, err);
 					return;
 				}
 			}
-
 			pos += len;
 		}
 	}

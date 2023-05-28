@@ -7,172 +7,159 @@ import std.exception : enforce;
 struct ByteBuffer
 {
 @safe:
-    @property pure nothrow @nogc {
-        bool empty() const { return _size == 0; }
+	@property pure nothrow @nogc {
+		bool empty() const { return _size == 0; }
 
-        size_t length() const { return _size; }
-    }
+		size_t length() const { return _size; }
+	}
 
-    ref typeof(this) opBinary(string op : "~", T: const void[])(auto ref T rhs) @trusted
-    {
-        if (rhs is null)
-        {
-            return this;
-        }
+	ref ByteBuffer opBinary(string op : "~", T: const void[])(auto ref T rhs) @trusted
+	{
+		if (rhs !is null)
+		{
+			_queue.insertBack(cast(ubyte[])rhs);
+			_size += rhs.length;
+		}
 
-        _queue.insertBack(cast(ubyte[])rhs);
-        _size += rhs.length;
+		return this;
+	}
 
-        return this;
-    }
+	void opOpAssign(string op : "~", T: const void[])(auto ref T rhs) @trusted
+	{
+		if (rhs !is null)
+		{
+			_queue.insertBack(cast(ubyte[])rhs);
+			_size += rhs.length;
+		}
+	}
 
-    void opOpAssign(string op : "~", T: const void[])(auto ref T rhs) @trusted
-    {
-        if (rhs is null)
-        {
-            return;
-        }
+	ubyte[] opSlice(size_t low, size_t high) @trusted
+	{
+		enforce(low <= high && high <= _size, "ByteBuffer.opSlice: Invalid arguments low, high");
 
-        _queue.insertBack(cast(ubyte[])rhs);
-        _size += rhs.length;
-    }
+		ubyte[] ret;
 
-    ubyte[] opSlice(size_t low, size_t high) @trusted
-    {
-        enforce(low <= high && high <= _size, "ByteBuffer.opSlice: Invalid arguments low, high");
+		if (low == high)
+		{
+			return ret;
+		}
 
-        ubyte[] ret;
+		size_t count, lack = high - low;
+		foreach (a; _queue)
+		{
+			count += a.length;
 
-        if (low == high)
-        {
-            return ret;
-        }
+			if (count < low)
+				continue;
 
-        size_t count, lack = high - low;
-        foreach (a; _queue)
-        {
-            count += a.length;
+			size_t start = low + ret.length - (count - a.length);
+			ret ~= a[start .. ($ - start) >= lack ? start + lack : $];
+			lack = high - low - ret.length;
 
-            if (count < low)
-            {
-                continue;
-            }
+			if (lack == 0)
+				break;
+		}
 
-            size_t start = low + ret.length - (count - a.length);
-            ret ~= a[start .. ($ - start) >= lack ? start + lack : $];
-            lack = high - low - ret.length;
+		return ret;
+	}
 
-            if (lack == 0)
-            {
-                break;
-            }
-        }
+	alias opDollar = length;
 
-        return ret;
-    }
+	ref ubyte opIndex(size_t index) @trusted
+	{
+		enforce(index < _size, "ByteBuffer.opIndex: Invalid arguments index");
 
-    alias opDollar = length;
+		size_t size, start;
+		foreach (a; _queue)
+		{
+			start = size;
+			size += a.length;
 
-    ref ubyte opIndex(size_t index) @trusted
-    {
-        enforce(index < _size, "ByteBuffer.opIndex: Invalid arguments index");
+			if (index < size)
+				return a[index - start];
+		}
 
-        size_t size, start;
-        foreach (a; _queue)
-        {
-            start = size;
-            size += a.length;
+		assert(0);
+	}
 
-            if (index < size)
-            {
-                return a[index - start];
-            }
-        }
+	@property ref inout(ubyte[]) front() inout nothrow @nogc
+	in(!_queue.empty, "ByteBuffer.front: Queue is empty") {
+		return _queue.front;
+	}
 
-        assert(0);
-    }
+	void popFront() in(!_queue.empty, "ByteBuffer.popFront: Queue is empty")
+	{
+		_size -= _queue.front.length;
+		_queue.removeFront();
+	}
 
-    @property ref inout(ubyte[]) front() inout nothrow @nogc
-    in(!_queue.empty, "ByteBuffer.front: Queue is empty") {
-        return _queue.front;
-    }
+	void popFront(size_t size)
+	in(size >= 0 && size <= _size, "ByteBuffer.popFront: Invalid arguments size") {
+		if (size == 0)
+			return;
 
-    void popFront() in(!_queue.empty, "ByteBuffer.popFront: Queue is empty")
-    {
-        _size -= _queue.front.length;
-        _queue.removeFront();
-    }
+		if (size == _size)
+		{
+			_queue.clear();
+			_size = 0;
 
-    void popFront(size_t size)
-    in(size >= 0 && size <= _size, "ByteBuffer.popFront: Invalid arguments size") {
-        if (size == 0)
-        {
-            return;
-        }
+			return;
+		}
 
-        if (size == _size)
-        {
-            _queue.clear();
-            _size = 0;
+		size_t removed, lack = size;
 
-            return;
-        }
+		size_t line, count, currline_len;
+		foreach (a; _queue)
+		{
+			line++;
+			currline_len = a.length;
+			count += currline_len;
 
-        size_t removed, lack = size;
+			if (count > size)
+				break;
+		}
 
-        size_t line, count, currline_len;
-        foreach (a; _queue)
-        {
-            line++;
-            currline_len = a.length;
-            count += currline_len;
+		if (line > 1)
+		{
+			removed = count - currline_len;
+			lack = size  - removed;
+			_queue.removeFront(line - 1);
+		}
 
-            if (count > size)
-            {
-                break;
-            }
-        }
+		if (lack > 0)
+			_queue.front = _queue.front[lack .. $];
 
-        if (line > 1)
-        {
-            removed = count - currline_len;
-            lack = size  - removed;
-            _queue.removeFront(line - 1);
-        }
+		_size -= size;
+	}
 
-        if (lack > 0)
-        {
-            _queue.front = _queue.front[lack .. $];
-        }
+nothrow:
+	void clear()
+	{
+		_queue.clear();
+		_size = 0;
+	}
 
-        _size -= size;
-    }
+	string toString()
+	{
+		try
+			return this[0 .. $].to!string;
+		catch (Exception)
+			assert(0);
+	}
 
-    void clear() nothrow
-    {
-        _queue.clear();
-        _size = 0;
-    }
-
-    string toString()
-    {
-        return this[0 .. $].to!string;
-    }
-
-    auto opCast(T)() if (isSomeString!T || is(T: const ubyte[]))
-    {
-        static if (isSomeString!T)
-        {
-            return toString();
-        }
-        else
-        {
-            return this[0 .. $];
-        }
-    }
+	auto opCast(T)() if (isSomeString!T || is(T: const ubyte[]))
+	{
+		static if (isSomeString!T)
+		{
+			return toString();
+		}
+		else
+		{
+			return this[0 .. $];
+		}
+	}
 
 private:
-
-    DList!(ubyte[]) _queue;
-    size_t          _size;
+	DList!(ubyte[]) _queue;
+	size_t          _size;
 }

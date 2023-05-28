@@ -58,12 +58,7 @@ class Epoll : Selector
 			return false;
 		}
 
-		if (reg(fd, et, EPOLL_CTL_ADD))
-		{
-			return errno == EEXIST;
-		}
-
-		return true;
+		return !reg(fd, et, EPOLL_CTL_ADD) || errno == EEXIST;
 	}
 
 	override bool reregister(int fd, EventType et)

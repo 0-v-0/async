@@ -19,7 +19,7 @@ class TcpClient : TcpListener
 	{
 		super(socket);
 		_selector = selector;
-		_closing  = false;
+		_closing = false;
 
 		version (Windows) { } else
 		{
@@ -55,9 +55,7 @@ private:
 			_hasReadEvent = false;
 
 			if (_reading)
-			{
 				return;
-			}
 
 			_reading = true;
 			_selector.workerPool.run!read(this);
@@ -116,29 +114,23 @@ private:
 					}
 				}
 				else
-				{
 					client._selector.onReceive(client, data);
-				}
 			}
 			client.readCallback(0);
 		}
 
-		void readCallback(const int err)  // err: 0: OK, -1: client disconnection, 1,2... errno
+		void readCallback(const int err) // err: 0: OK, -1: client disconnection, 1,2... errno
 		{
 			version (linux)
 			{
 				if (err == -1)
-				{
 					_selector.removeClient(fd, err);
-				}
 			}
 
 			_reading = false;
 
 			if (_hasReadEvent)
-			{
 				beginRead();
-			}
 		}
 
 		void beginWrite()
@@ -146,9 +138,7 @@ private:
 			_hasWriteEvent = false;
 
 			if (_writing)
-			{
 				return;
-			}
 
 			_writing = true;
 			_selector.workerPool.run!write(this);
@@ -162,7 +152,7 @@ private:
 				{
 					synchronized (client._sendLock.writer)
 					{
-						client._writingData     = client._writeQueue.front;
+						client._writingData = client._writeQueue.front;
 						client._writeQueue.popFront();
 						client._lastWriteOffset = 0;
 					}
@@ -170,8 +160,7 @@ private:
 
 				while (!client._closing && client.isAlive && client._lastWriteOffset < client._writingData.length)
 				{
-					long len = client.socket.send(client._writingData[client._lastWriteOffset .. $]);
-
+					const len = client.socket.send(client._writingData[client._lastWriteOffset .. $]);
 					if (len > 0)
 					{
 						client._lastWriteOffset += len;
@@ -180,28 +169,24 @@ private:
 					if (len == 0)
 					{
 						//client._selector.removeClient(fd);
-
 						if (client._lastWriteOffset < client._writingData.length)
 						{
 							if (client._selector.onSendCompleted)
-							{
 								client._selector.onSendCompleted(client, client._writingData, client._lastWriteOffset);
-							}
 
 							debug writefln("The sending is incomplete, the total length is %d, but actually sent only %d.",
 								client._writingData.length, client._lastWriteOffset);
 						}
 
 						client._writingData.length = 0;
-						client._lastWriteOffset    = 0;
+						client._lastWriteOffset = 0;
 
-						client.writeCallback(-1);  // sending is break and incomplete.
+						client.writeCallback(-1); // sending is break and incomplete.
 						return;
 					}
 					if (errno == EINTR)
-					{
 						continue;
-					}
+
 					if (errno == EAGAIN/* || errno == EWOULDBLOCK*/)
 					{
 						if (client._currentEventType != EventType.READWRITE)
@@ -210,25 +195,23 @@ private:
 							client._currentEventType = EventType.READWRITE;
 						}
 
-						client.writeCallback(0);  // Wait eventloop notify to continue again;
+						client.writeCallback(0); // Wait eventloop notify to continue again;
 						return;
 					}
 					client._writingData.length = 0;
-					client._lastWriteOffset    = 0;
+					client._lastWriteOffset = 0;
 
-					client.writeCallback(errno);  // Some error.
+					client.writeCallback(errno); // Some error.
 					return;
 				}
 
 				if (client._lastWriteOffset == client._writingData.length)
 				{
 					if (client._selector.onSendCompleted)
-					{
 						client._selector.onSendCompleted(client, client._writingData, client._lastWriteOffset);
-					}
 
 					client._writingData.length = 0;
-					client._lastWriteOffset    = 0;
+					client._lastWriteOffset = 0;
 				}
 			}
 
@@ -242,14 +225,12 @@ private:
 			return;
 		}
 
-		void writeCallback(int err)  // err: 0: OK, -1: client disconnection, 1,2... errno
+		void writeCallback(int err) // err: 0: OK, -1: client disconnection, 1,2... errno
 		{
 			_writing = false;
 
 			if (_hasWriteEvent)
-			{
 				beginWrite();
-			}
 		}
 	}
 
@@ -304,9 +285,7 @@ public:
 	void forceClose()
 	{
 		if (isAlive)
-		{
 			_selector.removeClient(fd);
-		}
 	}
 
 private:

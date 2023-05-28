@@ -8,9 +8,7 @@ import
 	std.socket;
 
 version (linux)
-{
 	import async.event.epoll;
-}
 else
 {
 	import async.event.kqueue;

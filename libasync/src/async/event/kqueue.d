@@ -3,51 +3,30 @@ module async.event.kqueue;
 debug import std.stdio;
 
 version (Posix)
-{
 	import core.sys.darwin.sys.event;
-}
 else version (FreeBSD)
-{
 	import core.sys.freebsd.sys.event;
-}
 else version (DragonFlyBSD)
-{
 	import core.sys.dragonflybsd.sys.event;
-}
 
 version (OSX)
-{
 	version = KQUEUE;
-}
 else version (iOS)
-{
 	version = KQUEUE;
-}
 else version (TVOS)
-{
 	version = KQUEUE;
-}
 else version (WatchOS)
-{
 	version = KQUEUE;
-}
 else version (FreeBSD)
-{
 	version = KQUEUE;
-}
 else version (OpenBSD)
-{
 	version = KQUEUE;
-}
 else version (DragonFlyBSD)
-{
 	version = KQUEUE;
-}
 
 version (KQUEUE):
 
 import
-	async.codec,
 	async.event.selector,
 	async.net.tcplistener,
 	core.stdc.errno,
@@ -132,7 +111,7 @@ class Kqueue : Selector
 
 		foreach (i; 0 .. len)
 		{
-			auto fd = cast(int)events[i].ident;
+			int fd = cast(int)events[i].ident;
 
 			if ((events[i].flags & EV_EOF) || (events[i].flags & EV_ERROR))
 			{

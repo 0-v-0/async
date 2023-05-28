@@ -53,7 +53,7 @@ abstract class Selector
 
 	~this() { dispose(); }
 
-	bool register  (int fd, EventType et) nothrow;
+	bool register(int fd, EventType et) nothrow;
 	bool reregister(int fd, EventType et) nothrow;
 	bool unregister(int fd) nothrow;
 
@@ -72,13 +72,10 @@ abstract class Selector
 	void startLoop()
 	{
 		_running = true;
-
 		initialize();
 
 		while (_running)
-		{
 			runLoop();
-		}
 	}
 
 	void stop() { _running = false; }
@@ -86,17 +83,13 @@ abstract class Selector
 	void dispose()
 	{
 		if (_clients is null)
-		{
 			return;
-		}
 
 		_clients.lock();
 		foreach (c; _clients.data)
 		{
 			if (unregister(c.fd) && c.isAlive)
-			{
 				c.close();
-			}
 		}
 		_clients.unlock();
 
@@ -127,9 +120,7 @@ abstract class Selector
 			if (err > 0 && onSocketError)
 				onSocketError(client, err);
 			if (onDisconnected)
-			{
 				onDisconnected(client);
-			}
 			try
 				if (client.isAlive)
 					client.close();
@@ -155,13 +146,9 @@ protected:
 	{
 		Socket socket = void;
 		try
-		{
 			socket = selector._listener.accept();
-		}
 		catch (Exception)
-		{
 			return;
-		}
 
 		auto client = new TcpClient(selector, socket);
 		try
@@ -171,9 +158,7 @@ protected:
 		selector._clients[client.fd] = client;
 
 		if (selector.onConnected)
-		{
 			selector.onConnected(client);
-		}
 		selector.register(client.fd, EventType.READ);
 
 		version (Windows) {
@@ -190,9 +175,7 @@ protected:
 			auto client = _clients[fd];
 
 			if (client && onReceive)
-			{
 				onReceive(client, data);
-			}
 		}
 	}
 	else
@@ -200,17 +183,13 @@ protected:
 		void read(int fd)
 		{
 			if (auto client = _clients[fd])
-			{
 				client.weakup(EventType.READ);
-			}
 		}
 
 		void write(int fd)
 		{
 			if (auto client = _clients[fd])
-			{
 				client.weakup(EventType.WRITE);
-			}
 		}
 	}
 

@@ -6,11 +6,11 @@ class TcpListener
 {
 	this()
 	{
-		this(new TcpSocket());
+		this(new TcpSocket);
 		socket.reusePort = true;
 
 		Linger optLinger;
-		optLinger.on   = 1;
+		optLinger.on = 1;
 		optLinger.time = 0;
 		setOption(SocketOptionLevel.SOCKET, SocketOption.LINGER, optLinger);
 	}
