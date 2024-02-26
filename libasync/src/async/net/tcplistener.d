@@ -32,7 +32,7 @@ class TcpListener
 		setOption(SocketOptionLevel.SOCKET, SocketOption.SNDTIMEO, 60.seconds);
 	}
 
-	@property final int fd() pure nothrow @nogc { return cast(int)handle; }
+	@property final fd() { return cast(int)handle; }
 
 	Socket socket;
 	alias socket this;

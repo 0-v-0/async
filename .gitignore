@@ -5,5 +5,5 @@
 *.lib
 *.exe
 *.pdb
-client
-server
+/client
+/server
